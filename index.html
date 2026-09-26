@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Particle Dojo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Klee+One:wght@400;600&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
+<style>
+:root {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --surface-2: #f6f8fb;
+  --ink: #18202e;
+  --muted: #5a6478;
+  --line: #d9dfe8;
+  --focus: #2f5da8;
+  --good: #1f8a4c;
+  --good-bg: #e3f4ea;
+  --bad: #c0392b;
+  --bad-bg: #fbe7e4;
+  --mark: #fff0b3;
+  /* one color per item type, WaniKani style */
+  --k-suffix: #2f5da8;
+  --k-prefix: #a0367a;
+  --k-particle: #0f7d72;
+  --k-range: #1d6f94;
+  --k-ending: #b25f14;
+  --k-wprefix: #6b4fb3;
+  --k-wsuffix: #3e7d2c;
+  --jp: "Klee One", "Zen Kaku Gothic New", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --jp-ui: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --sans: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151c; --surface: #1a2029; --surface-2: #212834; --ink: #e8ebf1; --muted: #9ba5b8;
+    --line: #2d3542; --focus: #8fb0ee; --good: #5fcf8e; --good-bg: #173325; --bad: #f08a7e; --bad-bg: #3a1d1a;
+    --mark: #5a4b12; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151c; --surface: #1a2029; --surface-2: #212834; --ink: #e8ebf1; --muted: #9ba5b8;
+  --line: #2d3542; --focus: #8fb0ee; --good: #5fcf8e; --good-bg: #173325; --bad: #f08a7e; --bad-bg: #3a1d1a;
+  --mark: #5a4b12; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.55;
+  padding-inline: 16px; padding-block: 0 48px;
+}
+.wrap { max-width: 760px; margin: 0 auto; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* top bar */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 20px 16px; }
+.brand { display: flex; align-items: center; gap: 10px; background: none; border: 0; padding: 0; }
+.brand .seal { font-family: var(--jp-ui); font-weight: 700; font-size: 18px; width: 38px; height: 38px; display: grid; place-items: center;
+  border-radius: 9px; background: var(--ink); color: var(--bg); }
+.brand b { font-size: 18px; letter-spacing: .01em; }
+.top .meta { color: var(--muted); font-size: 14px; }
+
+/* home */
+.intro { padding-block: 8px 20px; }
+.intro h1 { font-size: clamp(26px, 5vw, 34px); line-height: 1.2; }
+.intro p { color: var(--muted); max-width: 60ch; margin: 8px 0 0; }
+.steps { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; padding: 0; list-style: none; font-size: 14px; }
+.steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; color: var(--muted); }
+.steps li b { color: var(--ink); }
+.groups { display: grid; gap: 10px; }
+.group { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; text-align: left;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+.group:hover { border-color: var(--c); }
+.gtile { width: 64px; height: 64px; border-radius: 12px; background: var(--c); color: #fff; display: grid; place-items: center;
+  font-family: var(--jp-ui); font-weight: 700; font-size: 20px; line-height: 1.1; text-align: center; }
+.group h2 { font-size: 18px; }
+.group .sub { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.group .sample { font-family: var(--jp-ui); color: var(--muted); font-size: 14px; margin-top: 4px; overflow-wrap: anywhere; }
+.pill { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 4px 10px;
+  white-space: nowrap; border: 1px solid var(--line); color: var(--muted); }
+.pill.seen { color: var(--ink); }
+.pill.pass { background: var(--good-bg); color: var(--good); border-color: transparent; }
+.pill.master { background: var(--good); color: var(--surface); border-color: transparent; }
+@media (max-width: 520px) {
+  .group { grid-template-columns: auto 1fr; }
+  .group .pill { grid-column: 2; justify-self: start; }
+  .gtile { width: 54px; height: 54px; font-size: 17px; }
+}
+
+/* shared nav row */
+.crumbs { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.link { background: none; border: 0; padding: 6px 0; color: var(--muted); font-size: 15px; }
+.link:hover { color: var(--ink); }
+.count { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.btn { border-radius: 10px; padding: 11px 18px; border: 1px solid var(--line); background: var(--surface); font-weight: 700; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--c, var(--ink)); color: #fff; border-color: transparent; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* lesson */
+.ghead { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; }
+.ghead .gtile { width: 56px; height: 56px; font-size: 18px; }
+.ghead h1 { font-size: 22px; }
+.ghead p { margin: 0; color: var(--muted); font-size: 14px; }
+.strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 14px; }
+.chipbtn { flex: 0 0 auto; min-width: 44px; height: 44px; padding: 0 10px; border-radius: 9px; border: 2px solid transparent;
+  background: var(--surface); font-family: var(--jp-ui); font-weight: 700; color: var(--muted); }
+.chipbtn.seen { color: var(--c); }
+.chipbtn.on { background: var(--c); color: #fff; }
+.overview { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+.overview h2 { font-size: 20px; margin-bottom: 8px; }
+.overview p { margin: 0 0 12px; max-width: 64ch; }
+.overview .tip { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; font-size: 15px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.hero { background: var(--c); color: #fff; text-align: center; padding: 26px 16px 20px; }
+.hero .jp { font-family: var(--jp); font-weight: 600; font-size: clamp(56px, 14vw, 88px); line-height: 1.1; }
+.hero .reading { margin-top: 6px; font-size: 18px; opacity: .92; }
+.hero .reading .kana { font-family: var(--jp-ui); margin-right: 8px; }
+.hero .kind { display: inline-block; margin-top: 10px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  background: rgba(255,255,255,.18); border-radius: 999px; padding: 3px 10px; }
+.body { display: grid; gap: 18px; padding: 20px 22px 22px; }
+.body h3 { font-size: 12px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.body p { margin: 0; max-width: 64ch; }
+.meaning { font-size: 24px; font-weight: 700; line-height: 1.3; }
+.example { background: var(--surface-2); border-radius: 12px; padding: 14px 16px; }
+.example .ex-jp { font-family: var(--jp); font-size: 22px; line-height: 1.5; }
+.example .ex-ro { color: var(--muted); font-size: 15px; }
+.example .ex-en { margin-top: 4px; }
+.example mark { background: var(--mark); color: inherit; border-radius: 4px; padding: 0 2px; font-weight: 600; }
+.note { border-left: 3px solid var(--c); padding-left: 12px; }
+.answers { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0; list-style: none; }
+.answers li { font-size: 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
+
+.navrow { display: flex; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.ready { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; padding: 14px 16px; }
+.ready.all { border-style: solid; border-color: var(--c); }
+.ready p { margin: 0; color: var(--muted); font-size: 15px; }
+
+/* test */
+.bar { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; margin-bottom: 18px; }
+.bar span { display: block; height: 100%; background: var(--c); transition: width .3s ease; }
+.prompt { background: var(--c); color: #fff; text-align: center; border-radius: 16px; padding: 34px 16px 26px; }
+.prompt .jp { font-family: var(--jp); font-weight: 600; font-size: clamp(64px, 18vw, 112px); line-height: 1.05; }
+.prompt .reading { margin-top: 10px; font-size: 22px; }
+.prompt .reading .kana { font-family: var(--jp-ui); margin-right: 10px; opacity: .85; }
+.ask { text-align: center; color: var(--muted); margin: 16px 0 8px; }
+.answer-form { display: flex; gap: 8px; }
+.answer-form input { flex: 1; min-width: 0; font: inherit; font-size: 20px; padding: 12px 14px; border-radius: 12px; text-align: center;
+  border: 2px solid var(--line); background: var(--surface); color: var(--ink); }
+.answer-form input:focus { outline: none; border-color: var(--c); }
+.answer-form input.ok { border-color: var(--good); background: var(--good-bg); }
+.answer-form input.no { border-color: var(--bad); background: var(--bad-bg); }
+.shake { animation: shake .35s; }
+@keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+.feedback { min-height: 56px; margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; text-align: center; }
+.feedback .msg { width: 100%; font-weight: 700; }
+.feedback .msg.ok { color: var(--good); }
+.feedback .msg.no { color: var(--bad); }
+.feedback .msg small { display: block; font-weight: 400; color: var(--muted); }
+.skip { display: block; margin: 4px auto 0; }
+.review-panel { margin-top: 14px; }
+
+/* results */
+.score { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; text-align: center; }
+.score .big { font-size: 56px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--c); }
+.score p { margin: 8px 0 0; color: var(--muted); }
+.missed { margin-top: 18px; }
+.missed h2 { font-size: 16px; margin-bottom: 10px; }
+.missed-list { display: grid; gap: 8px; }
+.missed-row { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; text-align: left;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.missed-row .mini { min-width: 48px; height: 48px; padding: 0 8px; border-radius: 9px; background: var(--c); color: #fff; display: grid; place-items: center;
+  font-family: var(--jp-ui); font-weight: 700; font-size: 18px; }
+.missed-row .m-ro { color: var(--muted); font-size: 14px; }
+.missed-row .m-x { color: var(--bad); font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.foot { color: var(--muted); font-size: 13px; margin-top: 28px; }
+.foot button { font-size: 13px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .shake { animation: none; }
+  .bar span { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+/* ------------------------------------------------------------------
+   Content. Each item:
+   jp      what the test shows (kanji or kana)
+   kana    reading, only when jp contains kanji
+   romaji  romanized reading
+   meaning main English meaning shown in review
+   answers English answers the test accepts
+   use     when / how to use it
+   ex      [japanese with 【marked】 part, romaji, english]
+   note    optional extra tip
+------------------------------------------------------------------- */
+const GROUPS = [
+{
+  id: 'suffix', name: 'Name Suffixes', label: '敬称', kind: 'Honorific suffix', color: 'var(--k-suffix)',
+  sub: 'San, chan, kun, sama and friends',
+  intro: [
+    'These go on the end of a person\'s name (or title) and show how you relate to them: polite, cute, friendly, or deeply respectful.',
+    'Japanese people almost never use a bare name with someone they are not close to, so picking the right suffix matters.'
+  ],
+  tip: 'Golden rule: never put a suffix on your own name. Saying "Tanaka-san" about yourself sounds very odd.',
+  items: [
+    { jp: 'さん', romaji: 'san', meaning: 'Mr. / Ms.', answers: ['mr', 'ms', 'mrs', 'miss', 'mister', 'mr ms', 'polite', 'respectful', 'sir', 'madam'],
+      use: 'The default polite suffix for almost anyone: coworkers, classmates you are not close to, shop owners, strangers. Works for any gender and age. When in doubt, use さん.',
+      ex: ['田中【さん】は先生です。', 'Tanaka-san wa sensei desu.', 'Mr./Ms. Tanaka is a teacher.'],
+      note: 'It can even go on jobs and shops: パン屋さん (pan-ya-san, the baker), お医者さん (o-isha-san, the doctor).' },
+    { jp: 'ちゃん', romaji: 'chan', meaning: 'cute / affectionate (little)', answers: ['cute', 'affectionate', 'little', 'dear', 'endearing', 'endearment', 'cutie', 'sweetie'],
+      use: 'An affectionate, cute suffix for small children, close friends (especially girls), pets, grandparents, and people you adore. Using it with a boss or stranger is rude.',
+      ex: ['ゆい【ちゃん】、かわいいね！', 'Yui-chan, kawaii ne!', 'Yui, you\'re so cute!'],
+      note: 'Common words that use it: おばあちゃん (grandma), お姉ちゃん (big sis), 赤ちゃん (baby).' },
+    { jp: 'くん', kana: 'くん', romaji: 'kun', meaning: 'boy / junior (male)', answers: ['boy', 'young man', 'lad', 'junior', 'buddy', 'dude', 'male', 'young boy', 'guy'],
+      use: 'Used for boys and young men, male friends, and by seniors or bosses toward juniors (it can be used for junior women at work too). Friendly but a bit "top down".',
+      ex: ['健太【くん】、宿題は？', 'Kenta-kun, shukudai wa?', 'Kenta, what about your homework?'],
+      note: 'Written with the kanji 君 sometimes, but usually in kana.' },
+    { jp: '様', kana: 'さま', romaji: 'sama', meaning: 'honored / dear (very respectful)', answers: ['honored', 'honoured', 'honorable', 'honourable', 'dear', 'lord', 'lady', 'esteemed', 'very respectful', 'respectful', 'master', 'sir', 'madam'],
+      use: 'A much more respectful さん. Used for customers, in letters and emails, for gods, and for people far above you. Using it for a friend is either a joke or sarcasm.',
+      ex: ['お客【様】、こちらへどうぞ。', 'Okyaku-sama, kochira e dōzo.', 'Dear customer, this way please.'],
+      note: 'You\'ll see it on every envelope: 田中様 (To Mr./Ms. Tanaka).' },
+    { jp: '先生', kana: 'せんせい', romaji: 'sensei', meaning: 'teacher / doctor', answers: ['teacher', 'doctor', 'professor', 'master', 'instructor', 'dr', 'sensei'],
+      use: 'For teachers, doctors, lawyers, politicians, authors and other experts. Used both as a suffix (山田先生) and on its own to call them ("Sensei!").',
+      ex: ['山田【先生】はやさしいです。', 'Yamada-sensei wa yasashii desu.', 'Professor Yamada is kind.'],
+      note: 'Literally "born before": someone who has walked the path ahead of you.' },
+    { jp: '先輩', kana: 'せんぱい', romaji: 'senpai', meaning: 'senior (at school or work)', answers: ['senior', 'upperclassman', 'mentor', 'elder', 'superior', 'senior colleague', 'senior student', 'senpai', 'sempai'],
+      use: 'For someone who joined your school, club or company before you. Used as a suffix or by itself. The opposite is 後輩 (kōhai, junior), which is not used to call someone.',
+      ex: ['【先輩】、ありがとうございます！', 'Senpai, arigatō gozaimasu!', 'Thank you, senpai!'] },
+    { jp: '殿', kana: 'どの', romaji: 'dono', meaning: 'lord / honorable (formal, old-fashioned)', answers: ['lord', 'honorable', 'honourable', 'master', 'sir', 'formal', 'milord', 'my lord'],
+      use: 'An old, formal suffix. Today you mainly see it in official documents and awards, and in samurai dramas and anime.',
+      ex: ['田中【殿】', 'Tanaka-dono', 'The Honorable Tanaka (on a certificate)'] },
+    { jp: '氏', kana: 'し', romaji: 'shi', meaning: 'Mr. / Ms. (formal writing)', answers: ['mr', 'ms', 'mrs', 'mister', 'formal', 'mr ms'],
+      use: 'A formal, neutral suffix used in writing: news articles, reports and academic papers. It refers to a third person and is not used to talk to someone directly.',
+      ex: ['鈴木【氏】は会見で語った。', 'Suzuki-shi wa kaiken de katatta.', 'Mr. Suzuki spoke at the press conference.'] }
+  ]
+},
+{
+  id: 'prefix', name: 'Polite Prefixes', label: 'お・ご', kind: 'Honorific prefix', color: 'var(--k-prefix)',
+  sub: 'O, go and the formal written ones',
+  intro: [
+    'These go on the front of a word to make it polite or respectful. お茶 (o-cha, tea) and ご家族 (go-kazoku, your family) are everyday examples.',
+    'お and ご are both written 御 in kanji, but the kanji form is rare in everyday writing. Two business prefixes, 貴 and 弊, round out the set.'
+  ],
+  tip: 'Rough rule: お goes on native Japanese words (お名前, お金), ご goes on Chinese-origin words (ご家族, ご両親). There are exceptions like お電話 and お時間.',
+  items: [
+    { jp: 'お', romaji: 'o', meaning: 'polite / honorable', answers: ['polite', 'honorable', 'honourable', 'honorific', 'respectful', 'respect', 'honor', 'honour'],
+      use: 'Makes a word polite. Mostly used with native Japanese words. Some words almost always have it (お茶 tea, お金 money, お腹 stomach). When talking about someone else\'s things it shows respect.',
+      ex: ['【お】名前は何ですか。', 'O-namae wa nan desu ka.', 'What is your name?'] },
+    { jp: 'ご', romaji: 'go', meaning: 'polite / honorable', answers: ['polite', 'honorable', 'honourable', 'honorific', 'respectful', 'respect', 'honor', 'honour'],
+      use: 'The same job as お, but mostly used with Chinese-origin (on\'yomi) words: ご家族 (your family), ご両親 (your parents), ご飯 (rice / a meal), ご注文 (your order).',
+      ex: ['【ご】家族はお元気ですか。', 'Go-kazoku wa o-genki desu ka.', 'Is your family well?'] },
+    { jp: '御', kana: 'おん', romaji: 'on', meaning: 'honorable (very formal, written)', answers: ['honorable', 'honourable', 'formal', 'very formal', 'honorific', 'respectful', 'polite'],
+      use: 'A very formal reading of 御 used in set written phrases. The most common one is 御中 (onchū), written after a company or department name on envelopes and emails.',
+      ex: ['株式会社ABC 【御】中', 'Kabushiki-gaisha ABC onchū', 'To: ABC Corporation'] },
+    { jp: '御', kana: 'み', romaji: 'mi', meaning: 'august / sacred', answers: ['august', 'sacred', 'holy', 'divine', 'honorable', 'honourable', 'noble'],
+      use: 'A reading of 御 used with things related to gods, shrines and the imperial family. Examples: 御輿 (mikoshi, portable shrine), 御心 (mikokoro, divine will).',
+      ex: ['お祭りで【御】輿を担いだ。', 'O-matsuri de mikoshi o katsuida.', 'I carried the portable shrine at the festival.'] },
+    { jp: '貴', kana: 'き', romaji: 'ki', meaning: 'your (respectful)', answers: ['your', 'yours', 'noble', 'honorable', 'honourable', 'esteemed', 'your honorable', 'your esteemed', 'valued'],
+      use: 'Means "your" in a very respectful way, in formal writing. 貴社 (kisha) is "your company" in business letters and job applications.',
+      ex: ['【貴】社のご発展をお祈りします。', 'Kisha no go-hatten o oinori shimasu.', 'I wish your company continued success.'] },
+    { jp: '弊', kana: 'へい', romaji: 'hei', meaning: 'our (humble)', answers: ['our', 'ours', 'humble', 'my humble', 'our humble', 'my', 'lowly'],
+      use: 'The humble opposite of 貴. You lower your own side to show respect to the listener. 弊社 (heisha) means "our company" in business talk.',
+      ex: ['【弊】社の新しい製品です。', 'Heisha no atarashii seihin desu.', 'This is our company\'s new product.'] }
+  ]
+},
+{
+  id: 'particle', name: 'Core Particles', label: 'は・を', kind: 'Particle', color: 'var(--k-particle)',
+  sub: 'Wa, ga, o, ni, e, de, no, to, mo, ya',
+  intro: [
+    'Particles are tiny words placed right after a word to show its job in the sentence: the topic, the subject, the object, where, when, with whom.',
+    'English uses word order and prepositions for this. Japanese uses particles, which is why Japanese word order can be so flexible.'
+  ],
+  tip: 'Three particles are pronounced differently than they are written: は is "wa", を is "o", へ is "e".',
+  items: [
+    { jp: 'は', romaji: 'wa', meaning: 'topic marker ("as for...")', answers: ['topic', 'as for', 'topic marker', 'regarding', 'speaking of', 'about'],
+      use: 'Marks the topic: what the sentence is about. Also used to contrast ("this one, at least"). Written は but read "wa" when it is a particle.',
+      ex: ['私【は】学生です。', 'Watashi wa gakusei desu.', 'I am a student. (As for me, student.)'] },
+    { jp: 'が', romaji: 'ga', meaning: 'subject marker', answers: ['subject', 'subject marker', 'but'],
+      use: 'Marks the subject that does or is something, often new information. Used with ある/いる (there is), 好き (like), and to answer "who / what?" questions. At the end of a clause it can also mean "but".',
+      ex: ['猫【が】います。', 'Neko ga imasu.', 'There is a cat.'],
+      note: 'は vs が: 私は田中です answers "who are you?", while 私が田中です answers "which one is Tanaka?"' },
+    { jp: 'を', romaji: 'o', meaning: 'direct object marker', answers: ['object', 'direct object', 'object marker', 'direct object marker'],
+      use: 'Marks the thing an action is done to: what you eat, drink, read, buy. Also marks the space you move through (公園を歩く, walk through the park). Written を, read "o".',
+      ex: ['水【を】飲みます。', 'Mizu o nomimasu.', 'I drink water.'] },
+    { jp: 'に', romaji: 'ni', meaning: 'to / at / in (target, time, place)', answers: ['to', 'at', 'in', 'on', 'into', 'target', 'time', 'destination', 'location', 'for'],
+      use: 'Points at a target: where you are going, a specific time (7時に), where something exists (部屋にいる), and who receives something (友達にあげる).',
+      ex: ['七時【に】起きます。', 'Shichi-ji ni okimasu.', 'I get up at seven.'] },
+    { jp: 'へ', romaji: 'e', meaning: 'toward (direction)', answers: ['toward', 'towards', 'to', 'direction', 'in the direction of'],
+      use: 'Shows the direction of movement. Often swappable with に for destinations, but へ puts the focus on the direction rather than the arrival. Written へ, read "e".',
+      ex: ['日本【へ】行きます。', 'Nihon e ikimasu.', 'I\'m going to Japan.'] },
+    { jp: 'で', romaji: 'de', meaning: 'at / in / by / with (place of action, means)', answers: ['at', 'in', 'by', 'with', 'by means of', 'using', 'means', 'place of action', 'location'],
+      use: 'Marks where an action happens (図書館で勉強する, study at the library) and the tool or method used (バスで, by bus; 日本語で, in Japanese).',
+      ex: ['バス【で】学校に行きます。', 'Basu de gakkō ni ikimasu.', 'I go to school by bus.'],
+      note: 'に vs で: に is where something IS (部屋にいる). で is where something HAPPENS (部屋で食べる).' },
+    { jp: 'の', romaji: 'no', meaning: 'of / \'s (possession)', answers: ['of', 's', 'possessive', 'possession', 'owner', 'belonging to'],
+      use: 'Links two nouns, like "\'s" or "of" in English: 私の本 (my book), 日本の車 (Japanese car), 学校の先生 (a teacher at the school).',
+      ex: ['これは私【の】本です。', 'Kore wa watashi no hon desu.', 'This is my book.'] },
+    { jp: 'と', romaji: 'to', meaning: 'and / with', answers: ['and', 'with', 'together with', 'along with', 'quote', 'if', 'when'],
+      use: 'Joins a complete list of nouns ("A and B") and marks who you do something with. After a quote it means "that" (〜と言った, said that...).',
+      ex: ['友達【と】映画を見ました。', 'Tomodachi to eiga o mimashita.', 'I watched a movie with a friend.'] },
+    { jp: 'も', romaji: 'mo', meaning: 'also / too', answers: ['also', 'too', 'as well', 'even', 'either'],
+      use: 'Replaces は, が or を to mean "also / too". With a negative it means "either" (私も行かない, I won\'t go either).',
+      ex: ['私【も】行きます。', 'Watashi mo ikimasu.', 'I\'ll go too.'] },
+    { jp: 'や', romaji: 'ya', meaning: 'and (among other things)', answers: ['and', 'and so on', 'and such', 'etc', 'among others', 'and things like', 'or'],
+      use: 'Joins nouns in a list that is NOT complete: "A, B and things like that". Use と when the list is complete.',
+      ex: ['りんご【や】バナナを買いました。', 'Ringo ya banana o kaimashita.', 'I bought apples, bananas and such.'] }
+  ]
+},
+{
+  id: 'range', name: 'Range & Limit Particles', label: 'から', kind: 'Particle', color: 'var(--k-range)',
+  sub: 'Kara, made, yori, dake, shika and more',
+  intro: [
+    'This set describes limits and amounts: from where, until when, more than what, only this, about that much.',
+    'They attach after nouns (and sometimes verbs) just like the core particles.'
+  ],
+  tip: 'だけ and しか both mean "only", but しか must be followed by a negative verb: 百円しかない = "I have only 100 yen".',
+  items: [
+    { jp: 'から', romaji: 'kara', meaning: 'from / because', answers: ['from', 'because', 'since', 'starting from', 'so'],
+      use: 'After a noun it means "from" (a start point in time or place). After a sentence it means "because".',
+      ex: ['九時【から】働きます。', 'Ku-ji kara hatarakimasu.', 'I work from nine o\'clock.'] },
+    { jp: 'まで', romaji: 'made', meaning: 'until / up to', answers: ['until', 'till', 'til', 'up to', 'as far as', 'to', 'up until', 'even'],
+      use: 'The end point of a time or distance. Pairs naturally with から: 九時から五時まで (from 9 to 5).',
+      ex: ['五時【まで】待ちます。', 'Go-ji made machimasu.', 'I\'ll wait until five.'] },
+    { jp: 'より', romaji: 'yori', meaning: 'than', answers: ['than', 'more than', 'compared to', 'rather than', 'from'],
+      use: 'Used for comparisons: "A より B" means "B more than A". In formal writing it can also mean "from".',
+      ex: ['犬【より】猫が好きです。', 'Inu yori neko ga suki desu.', 'I like cats more than dogs.'] },
+    { jp: 'だけ', romaji: 'dake', meaning: 'only / just', answers: ['only', 'just', 'merely', 'simply', 'alone'],
+      use: 'Limits something to "only this". Neutral in tone and works with positive or negative verbs.',
+      ex: ['一つ【だけ】ください。', 'Hitotsu dake kudasai.', 'Just one, please.'] },
+    { jp: 'しか', romaji: 'shika', meaning: 'only / nothing but (with a negative)', answers: ['only', 'nothing but', 'just', 'no more than', 'except'],
+      use: '"Only", but with a feeling of "not enough". It MUST be followed by a negative verb.',
+      ex: ['百円【しか】ありません。', 'Hyaku-en shika arimasen.', 'I only have 100 yen.'] },
+    { jp: 'ほど', romaji: 'hodo', meaning: 'to the extent of / as ... as', answers: ['extent', 'to the extent', 'as much as', 'about', 'degree', 'as', 'so much'],
+      use: 'Shows degree or extent. Often in negative comparisons: "A is not as ~ as B".',
+      ex: ['思った【ほど】難しくない。', 'Omotta hodo muzukashiku nai.', 'It\'s not as hard as I thought.'] },
+    { jp: 'など', romaji: 'nado', meaning: 'etc. / and so on', answers: ['etc', 'etcetera', 'et cetera', 'and so on', 'and the like', 'such as', 'things like', 'and so forth'],
+      use: 'Goes at the end of a list to say there are more things. Often combined with や: AやBなど.',
+      ex: ['本やペン【など】を買いました。', 'Hon ya pen nado o kaimashita.', 'I bought books, pens and so on.'] },
+    { jp: 'ぐらい', romaji: 'gurai', meaning: 'about / around', answers: ['about', 'around', 'approximately', 'roughly', 'approx', 'or so', 'at least'],
+      use: 'An approximate amount or time length. くらい (kurai) is the same thing.',
+      ex: ['一時間【ぐらい】かかります。', 'Ichi-jikan gurai kakarimasu.', 'It takes about an hour.'],
+      note: 'For a point in time, use ごろ: 三時ごろ (around 3 o\'clock).' }
+  ]
+},
+{
+  id: 'ending', name: 'Sentence Endings', label: 'ね・よ', kind: 'Ending particle', color: 'var(--k-ending)',
+  sub: 'Ka, ne, yo, kana, zo, ze and more',
+  intro: [
+    'These go at the very end of a sentence and add tone: a question, looking for agreement, sharing news, wondering, or strong emphasis.',
+    'They are a big part of how Japanese sounds natural in conversation, and some of them sound more masculine or feminine.'
+  ],
+  tip: 'ぞ and ぜ sound rough and masculine. わ (with rising tone) sounds soft and feminine. In polite speech, stick to か, ね and よ.',
+  items: [
+    { jp: 'か', romaji: 'ka', meaning: 'question marker (?)', answers: ['question', 'question marker', '?', 'question mark', 'interrogative'],
+      use: 'Turns a sentence into a question. In polite speech you don\'t need a question mark, か does the job.',
+      ex: ['学生です【か】。', 'Gakusei desu ka.', 'Are you a student?'] },
+    { jp: 'ね', romaji: 'ne', meaning: 'right? / isn\'t it?', answers: ['right', 'isnt it', 'isn\'t it', 'agreement', 'confirmation', 'eh', 'huh', 'dont you think', 'yeah'],
+      use: 'Asks for agreement or shares a feeling the listener probably has too. Like "..., isn\'t it?" or "..., right?".',
+      ex: ['いい天気です【ね】。', 'Ii tenki desu ne.', 'Nice weather, isn\'t it?'] },
+    { jp: 'よ', romaji: 'yo', meaning: 'you know / I tell you (emphasis)', answers: ['you know', 'emphasis', 'i tell you', 'for sure', 'certainty', 'new information', 'assertion'],
+      use: 'Tells the listener something they probably don\'t know yet, with confidence. Like "you know!" or "I\'m telling you".',
+      ex: ['このケーキ、おいしいです【よ】。', 'Kono kēki, oishii desu yo.', 'This cake is delicious, you know!'] },
+    { jp: 'よね', romaji: 'yone', meaning: 'right? (checking)', answers: ['right', 'isnt it', 'isn\'t it', 'confirmation', 'you know right', 'arent we', 'dont you', 'yeah'],
+      use: 'Combines よ and ね: you believe something and want the listener to confirm it.',
+      ex: ['明日は休みだ【よね】？', 'Ashita wa yasumi da yo ne?', 'Tomorrow\'s a day off, right?'] },
+    { jp: 'な', romaji: 'na', meaning: 'don\'t! (prohibition)', answers: ['dont', 'don\'t', 'do not', 'prohibition', 'must not', 'no'],
+      use: 'After the plain (dictionary) form of a verb it is a harsh command: "Don\'t!". Said softly to yourself it can also mean musing, like a casual ね.',
+      ex: ['触る【な】！', 'Sawaru na!', 'Don\'t touch!'] },
+    { jp: 'かな', romaji: 'kana', meaning: 'I wonder', answers: ['i wonder', 'wonder', 'wondering', 'maybe', 'perhaps'],
+      use: 'Wondering out loud, often to yourself. Casual. かしら is a softer, feminine version.',
+      ex: ['明日、雨が降る【かな】。', 'Ashita, ame ga furu kana.', 'I wonder if it\'ll rain tomorrow.'] },
+    { jp: 'わ', romaji: 'wa', meaning: 'soft emphasis (feminine)', answers: ['emphasis', 'soft emphasis', 'feminine', 'feminine emphasis', 'gentle emphasis'],
+      use: 'Soft emphasis, traditionally feminine in Tokyo speech. In the Kansai region everyone uses it, with a flat tone.',
+      ex: ['私、知らない【わ】。', 'Watashi, shiranai wa.', 'I don\'t know.'] },
+    { jp: 'ぞ', romaji: 'zo', meaning: 'strong emphasis (masculine)', answers: ['emphasis', 'strong emphasis', 'masculine', 'masculine emphasis', 'determination'],
+      use: 'Strong, rough emphasis. Used to fire yourself up or to warn someone. Sounds masculine.',
+      ex: ['よし、行く【ぞ】！', 'Yoshi, iku zo!', 'All right, let\'s go!'] },
+    { jp: 'ぜ', romaji: 'ze', meaning: 'emphasis, "let\'s!" (masculine)', answers: ['emphasis', 'lets', 'let\'s', 'masculine', 'masculine emphasis', 'rough emphasis', 'come on'],
+      use: 'Friendly, rough emphasis, often to invite someone along. Very casual and masculine.',
+      ex: ['一緒にやろう【ぜ】！', 'Issho ni yarō ze!', 'Let\'s do it together!'] },
+    { jp: 'の', romaji: 'no', meaning: 'explanation / casual question', answers: ['explanation', 'explanatory', 'question', 'casual question', 'reason'],
+      use: 'At the end of a sentence it asks for or gives an explanation. With a rising tone it\'s a soft, casual question. It is the casual form of 〜んです.',
+      ex: ['どうした【の】？', 'Dō shita no?', 'What\'s wrong?'] }
+  ]
+},
+{
+  id: 'wprefix', name: 'Word Prefixes', label: '不・超', kind: 'Word prefix', color: 'var(--k-wprefix)',
+  sub: 'Fu, mu, mi, hi, sai, chō, zen...',
+  intro: [
+    'These kanji go on the front of other words to change their meaning, like "un-", "re-" or "super-" in English.',
+    'Learning them lets you guess the meaning of hundreds of new words on sight.'
+  ],
+  tip: '不, 無, 未 and 非 all mean some kind of "not". 不 = not / un-, 無 = without, 未 = not yet, 非 = non- / anti-.',
+  items: [
+    { jp: '不', kana: 'ふ', romaji: 'fu', meaning: 'not / un-', answers: ['not', 'un', 'in', 'non', 'dis', 'im', 'negative', 'no'],
+      use: 'Makes the opposite of a word, like "un-". 不便 (fuben, inconvenient), 不安 (fuan, uneasy), 不可能 (fukanō, impossible).',
+      ex: ['この町は【不】便です。', 'Kono machi wa fuben desu.', 'This town is inconvenient.'] },
+    { jp: '無', kana: 'む', romaji: 'mu', meaning: 'without / -less', answers: ['without', 'less', 'no', 'none', 'nothing', 'lacking', 'free', 'free of'],
+      use: 'Means there is none of something. 無料 (muryō, free of charge), 無理 (muri, impossible, "without reason"), 無職 (mushoku, unemployed).',
+      ex: ['入場は【無】料です。', 'Nyūjō wa muryō desu.', 'Admission is free.'] },
+    { jp: '未', kana: 'み', romaji: 'mi', meaning: 'not yet', answers: ['not yet', 'yet', 'un', 'still not', 'incomplete'],
+      use: 'Something has not happened yet. 未成年 (miseinen, minor, "not yet adult"), 未来 (mirai, the future, "not yet come").',
+      ex: ['【未】成年はお酒を飲めません。', 'Miseinen wa osake o nomemasen.', 'Minors can\'t drink alcohol.'] },
+    { jp: '非', kana: 'ひ', romaji: 'hi', meaning: 'non- / anti-', answers: ['non', 'anti', 'not', 'un', 'in', 'wrong'],
+      use: 'A formal "non-" or "un-". 非公式 (hikōshiki, unofficial), 非常識 (hijōshiki, lacking common sense).',
+      ex: ['これは【非】公式の記録です。', 'Kore wa hikōshiki no kiroku desu.', 'This is an unofficial record.'] },
+    { jp: '再', kana: 'さい', romaji: 'sai', meaning: 're- / again', answers: ['re', 'again', 'repeat', 'once more', 'second time'],
+      use: 'Doing something again, like "re-". 再利用 (sairiyō, reuse), 再開 (saikai, reopen / resume), 再生 (saisei, replay).',
+      ex: ['ペットボトルを【再】利用します。', 'Petto botoru o sairiyō shimasu.', 'I reuse plastic bottles.'] },
+    { jp: '超', kana: 'ちょう', romaji: 'chō', meaning: 'super / ultra', answers: ['super', 'ultra', 'very', 'extremely', 'really', 'hyper', 'mega', 'over', 'beyond'],
+      use: 'In formal words it means "super-" or "beyond": 超音速 (chōonsoku, supersonic). In casual speech it\'s slang for "super / really".',
+      ex: ['この猫、【超】かわいい！', 'Kono neko, chō kawaii!', 'This cat is super cute!'] },
+    { jp: '新', kana: 'しん', romaji: 'shin', meaning: 'new', answers: ['new', 'neo', 'fresh', 'novel'],
+      use: 'Makes something "new". 新記録 (shin-kiroku, new record), 新幹線 (shinkansen, bullet train, "new trunk line"), 新入生 (shinnyūsei, new student).',
+      ex: ['【新】記録です！', 'Shin-kiroku desu!', 'It\'s a new record!'] },
+    { jp: '毎', kana: 'まい', romaji: 'mai', meaning: 'every', answers: ['every', 'each', 'per'],
+      use: 'Goes on time words to mean "every". 毎日 (mainichi, every day), 毎朝 (maiasa, every morning), 毎年 (maitoshi, every year).',
+      ex: ['【毎】日日本語を勉強します。', 'Mainichi nihongo o benkyō shimasu.', 'I study Japanese every day.'] },
+    { jp: '全', kana: 'ぜん', romaji: 'zen', meaning: 'all / whole', answers: ['all', 'whole', 'entire', 'every', 'total', 'complete', 'full', 'omni'],
+      use: 'The whole of something. 全員 (zen\'in, all members / everyone), 全国 (zenkoku, the whole country), 全部 (zenbu, all of it).',
+      ex: ['【全】員来ました。', 'Zen\'in kimashita.', 'Everyone came.'] },
+    { jp: '前', kana: 'ぜん', romaji: 'zen', meaning: 'former / ex-', answers: ['former', 'ex', 'previous', 'last', 'pre', 'before', 'prior', 'earlier'],
+      use: 'Used on titles and periods to mean "former" or "previous". 前社長 (zen-shachō, former president), 前半 (zenhan, first half).',
+      ex: ['【前】社長に会いました。', 'Zen-shachō ni aimashita.', 'I met the former company president.'],
+      note: 'Same reading as 全! The test shows you the kanji so you can tell them apart.' },
+    { jp: '初', kana: 'はつ', romaji: 'hatsu', meaning: 'first', answers: ['first', 'the first', 'first time', 'initial', 'debut'],
+      use: 'The first one of something. 初雪 (hatsuyuki, first snow), 初恋 (hatsukoi, first love), 初日の出 (hatsuhinode, first sunrise of the year).',
+      ex: ['今日は【初】雪だ。', 'Kyō wa hatsuyuki da.', 'Today is the first snow.'] },
+    { jp: '真', kana: 'ま', romaji: 'ma', meaning: 'true / pure / right in the middle', answers: ['true', 'pure', 'exact', 'exactly', 'right', 'very', 'real', 'dead', 'truly', 'completely'],
+      use: 'Intensifies a word: "pure, exactly, right in". 真っ白 (masshiro, pure white), 真夜中 (mayonaka, dead of night), 真ん中 (mannaka, right in the middle).',
+      ex: ['【真】夜中に目が覚めた。', 'Mayonaka ni me ga sameta.', 'I woke up in the middle of the night.'] }
+  ]
+},
+{
+  id: 'wsuffix', name: 'Word Suffixes', label: '人・語', kind: 'Word suffix', color: 'var(--k-wsuffix)',
+  sub: 'Tachi, jin, go, ya, teki, chū...',
+  intro: [
+    'These go on the end of words to make plurals, nationalities, languages, shops, "-ic" adjectives and more.',
+    'Like the prefixes, each one unlocks a whole family of words.'
+  ],
+  tip: 'Japanese nouns have no plural "-s". たち and ら are only for people (and sometimes animals).',
+  items: [
+    { jp: 'たち', romaji: 'tachi', meaning: 'plural (for people)', answers: ['plural', 's', 'and others', 'group', 'and company', 'people', 'multiple', 'we'],
+      use: 'Makes a word about people plural: 私たち (watashitachi, we), 子供たち (kodomotachi, children). With a name it means "X and the others".',
+      ex: ['子供【たち】が遊んでいます。', 'Kodomotachi ga asonde imasu.', 'The children are playing.'] },
+    { jp: 'ら', romaji: 'ra', meaning: 'plural (casual / humble)', answers: ['plural', 's', 'and others', 'group', 'they', 'those'],
+      use: 'A more casual or humble plural. 彼ら (karera, they), 僕ら (bokura, we). Can sound rude when used on people above you.',
+      ex: ['彼【ら】は友達です。', 'Karera wa tomodachi desu.', 'They are friends.'] },
+    { jp: '人', kana: 'じん', romaji: 'jin', meaning: 'person (nationality)', answers: ['person', 'people', 'nationality', 'ese', 'ian', 'an', 'citizen', 'native', 'person from'],
+      use: 'After a country name it means a person from there: 日本人 (nihonjin, Japanese person), アメリカ人 (amerikajin, American).',
+      ex: ['私はアメリカ【人】です。', 'Watashi wa Amerika-jin desu.', 'I\'m American.'] },
+    { jp: '語', kana: 'ご', romaji: 'go', meaning: 'language', answers: ['language', 'tongue', 'word', 'words'],
+      use: 'After a country or region name it means its language: 日本語 (nihongo, Japanese), 英語 (eigo, English), 中国語 (chūgokugo, Chinese).',
+      ex: ['日本【語】を話せますか。', 'Nihongo o hanasemasu ka.', 'Can you speak Japanese?'] },
+    { jp: '屋', kana: 'や', romaji: 'ya', meaning: 'shop / store', answers: ['shop', 'store', 'seller', 'dealer', 'shopkeeper', 'business', 'house'],
+      use: 'A shop or the person who runs it: パン屋 (pan-ya, bakery), 本屋 (hon-ya, bookstore), 花屋 (hana-ya, florist).',
+      ex: ['パン【屋】はどこですか。', 'Pan-ya wa doko desu ka.', 'Where is the bakery?'] },
+    { jp: '的', kana: 'てき', romaji: 'teki', meaning: '-ic / -al / -like', answers: ['ic', 'al', 'ical', 'like', 'ish', 'ly', 'style', 'in nature', 'related'],
+      use: 'Turns a noun into an adjective, like "-ic" or "-al". 科学的 (kagakuteki, scientific), 個人的 (kojinteki, personal). Casually, 私的には means "for me personally".',
+      ex: ['科学【的】な方法です。', 'Kagakuteki na hōhō desu.', 'It\'s a scientific method.'] },
+    { jp: '中', kana: 'ちゅう', romaji: 'chū', meaning: 'during / in the middle of', answers: ['during', 'in the middle of', 'in progress', 'currently', 'while', 'in', 'middle', 'ing', 'under way'],
+      use: 'Something is in progress right now. 会議中 (kaigichū, in a meeting), 営業中 (eigyōchū, open for business), 工事中 (kōjichū, under construction).',
+      ex: ['今、会議【中】です。', 'Ima, kaigichū desu.', 'I\'m in a meeting right now.'],
+      note: 'Read じゅう (jū) it means "throughout": 一日中 (ichinichijū, all day long).' },
+    { jp: '者', kana: 'しゃ', romaji: 'sha', meaning: 'person who does ~ (-er)', answers: ['person', 'er', 'or', 'one who', 'person who', 'doer', 'someone', 'people'],
+      use: 'A person connected with an activity, like "-er": 医者 (isha, doctor), 学者 (gakusha, scholar), 読者 (dokusha, reader).',
+      ex: ['彼は医【者】です。', 'Kare wa isha desu.', 'He is a doctor.'] },
+    { jp: '化', kana: 'か', romaji: 'ka', meaning: '-ization / -ize', answers: ['ize', 'ise', 'ization', 'isation', 'ify', 'become', 'change', 'transformation', 'conversion'],
+      use: 'Turning into something, like "-ize" or "-ization". 自動化 (jidōka, automation), 映画化 (eigaka, made into a movie), 変化 (henka, change).',
+      ex: ['その小説が映画【化】された。', 'Sono shōsetsu ga eigaka sareta.', 'That novel was made into a movie.'] },
+    { jp: '方', kana: 'かた', romaji: 'kata', meaning: 'way of / how to', answers: ['way of', 'how to', 'way', 'method', 'manner', 'how'],
+      use: 'After a verb stem it means "the way of doing it": 食べ方 (tabekata, how to eat), 使い方 (tsukaikata, how to use), 読み方 (yomikata, how to read).',
+      ex: ['箸の使い【方】を教えてください。', 'Hashi no tsukaikata o oshiete kudasai.', 'Please teach me how to use chopsticks.'] }
+  ]
+}
+];
+
+/* ------------------------------------------------------------------
+   Progress (per browser; the app works fine if storage is blocked)
+------------------------------------------------------------------- */
+const STORE_KEY = 'particle-dojo-v1';
+let progress = {};
+try { progress = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { progress = {}; }
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(progress)); } catch (e) {} }
+function gp(id) { return progress[id] || (progress[id] = { seen: [], best: null, tests: 0 }); }
+
+/* ------------------------------------------------------------------
+   Answer checking
+------------------------------------------------------------------- */
+function clean(s) {
+  let n = s.toLowerCase().replace(/[’'`]/g, '').replace(/\?/g, ' ? ').replace(/[^a-z0-9?\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (n === '?') return 'question';
+  n = n.replace(/\?/g, ' ').replace(/\s+/g, ' ').trim();
+  n = n.replace(/^(the|a|an) /, '');
+  const stripped = n.replace(/\b(particle|marker|suffix|prefix|word|ending)\b/g, ' ').replace(/\s+/g, ' ').trim();
+  return stripped || n;
+}
+function lev(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+// returns { ok, close, match }
+function matchOne(input, item) {
+  const n = clean(input);
+  if (!n) return { ok: false };
+  const targets = item.answers.map(a => ({ raw: a, c: clean(a) }));
+  const exact = targets.find(t => t.c === n);
+  if (exact) return { ok: true, close: false, match: exact.raw };
+  const allowed = n.length >= 8 ? 2 : n.length >= 4 ? 1 : 0;
+  if (allowed) {
+    const near = targets.find(t => t.c.length >= 4 && lev(t.c, n) <= allowed);
+    if (near) return { ok: true, close: true, match: near.raw };
+  }
+  return { ok: false };
+}
+function check(input, item) {
+  const whole = matchOne(input, item);
+  if (whole.ok) return whole;
+  // "mr/ms" or "to, at": every piece has to be right
+  const parts = input.split(/[\/,;]| or /).map(s => s.trim()).filter(Boolean);
+  if (parts.length > 1) {
+    const results = parts.map(p => matchOne(p, item));
+    if (results.every(r => r.ok)) return { ok: true, close: results.some(r => r.close), match: results[0].match };
+  }
+  return { ok: false };
+}
+
+/* ------------------------------------------------------------------
+   Rendering helpers
+------------------------------------------------------------------- */
+const app = document.getElementById('app');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const exJp = s => esc(s).replace(/【(.+?)】/g, '<mark>$1</mark>');
+const total = GROUPS.reduce((n, g) => n + g.items.length, 0);
+
+function reading(item) {
+  return (item.kana ? `<span class="kana">${esc(item.kana)}</span>` : '') + `<span>${esc(item.romaji)}</span>`;
+}
+
+function itemCard(item, group) {
+  return `
+  <article class="card" style="--c:${group.color}">
+    <div class="hero">
+      <div class="jp" lang="ja">${esc(item.jp)}</div>
+      <div class="reading">${reading(item)}</div>
+      <span class="kind">${esc(group.kind)}</span>
+    </div>
+    <div class="body">
+      <div><h3>Meaning</h3><p class="meaning">${esc(item.meaning)}</p></div>
+      <div><h3>When to use it</h3><p>${esc(item.use)}</p></div>
+      <div class="example">
+        <h3>Example</h3>
+        <p class="ex-jp" lang="ja">${exJp(item.ex[0])}</p>
+        <p class="ex-ro">${esc(item.ex[1])}</p>
+        <p class="ex-en">${esc(item.ex[2])}</p>
+      </div>
+      ${item.note ? `<div class="note"><h3>Tip</h3><p>${esc(item.note)}</p></div>` : ''}
+      <div><h3>Answers the test accepts</h3>
+        <ul class="answers">${item.answers.map(a => `<li>${esc(a)}</li>`).join('')}</ul>
+      </div>
+    </div>
+  </article>`;
+}
+
+function topBar(meta) {
+  return `<header class="top">
+    <button class="brand" data-act="home" aria-label="Back to all groups"><span class="seal" lang="ja">助</span><b>Particle Dojo</b></button>
+    <span class="meta">${meta || ''}</span>
+  </header>`;
+}
+
+/* ------------------------------------------------------------------
+   Views
+------------------------------------------------------------------- */
+let state = { view: 'home' };
+let advanceTimer = null;
+
+function go(next) {
+  clearTimeout(advanceTimer);
+  state = next;
+  render();
+  window.scrollTo(0, 0);
+}
+
+function render() {
+  if (state.view === 'home') renderHome();
+  else if (state.view === 'lesson') renderLesson();
+  else if (state.view === 'test') renderTest();
+  else if (state.view === 'results') renderResults();
+}
+
+function statusPill(g) {
+  const p = gp(g.id);
+  if (p.best === 100) return '<span class="pill master">Mastered</span>';
+  if (p.best !== null) return `<span class="pill pass">Best ${p.best}%</span>`;
+  if (p.seen.length) return `<span class="pill seen">Reviewed ${p.seen.length}/${g.items.length}</span>`;
+  return '<span class="pill">New</span>';
+}
+
+function renderHome() {
+  const mastered = GROUPS.filter(g => gp(g.id).best === 100).length;
+  app.innerHTML = `
+  ${topBar(`${total} items · ${mastered}/${GROUPS.length} mastered`)}
+  <section class="intro">
+    <h1>Japanese particles, prefixes &amp; honorifics</h1>
+    <p>Each group starts with a review where you learn what every item means and when to use it. When you're ready, take the test: you'll see the Japanese and its romaji, and type the English meaning.</p>
+    <ul class="steps"><li><b>1</b> Review the group</li><li><b>2</b> Press Ready</li><li><b>3</b> Type the meaning</li><li><b>4</b> Missed one? Review it, then try again</li></ul>
+  </section>
+  <section class="groups">
+    ${GROUPS.map(g => `
+      <button class="group" data-act="open" data-id="${g.id}" style="--c:${g.color}">
+        <span class="gtile" lang="ja">${esc(g.label)}</span>
+        <span>
+          <h2>${esc(g.name)}</h2>
+          <div class="sub">${esc(g.sub)} · ${g.items.length} items</div>
+          <div class="sample" lang="ja">${g.items.map(i => esc(i.jp)).join('　')}</div>
+        </span>
+        ${statusPill(g)}
+      </button>`).join('')}
+  </section>
+  <p class="foot">Progress is saved in this browser. <button class="link" data-act="reset">Reset progress</button></p>`;
+}
+
+function renderLesson() {
+  const g = GROUPS.find(x => x.id === state.group);
+  const p = gp(g.id);
+  const i = state.index;
+  if (i >= 0 && !p.seen.includes(i)) { p.seen.push(i); save(); }
+  const allSeen = p.seen.length >= g.items.length;
+  const body = i < 0 ? `
+    <div class="overview">
+      <h2>About this group</h2>
+      ${g.intro.map(t => `<p>${esc(t)}</p>`).join('')}
+      <p class="tip"><b>Tip:</b> ${esc(g.tip)}</p>
+      <button class="btn primary" data-act="lesson-go" data-i="0">Start the review</button>
+    </div>` : itemCard(g.items[i], g);
+
+  app.innerHTML = `
+  ${topBar()}
+  <div style="--c:${g.color}">
+    <nav class="crumbs">
+      <button class="link" data-act="home">← All groups</button>
+      <span class="count">${i < 0 ? 'Overview' : `Review · ${i + 1} / ${g.items.length}`}</span>
+    </nav>
+    <div class="ghead">
+      <span class="gtile" lang="ja">${esc(g.label)}</span>
+      <div><h1>${esc(g.name)}</h1><p>${esc(g.sub)}</p></div>
+    </div>
+    <div class="strip" role="tablist" aria-label="Items in this group">
+      <button class="chipbtn ${i < 0 ? 'on' : 'seen'}" data-act="lesson-go" data-i="-1" aria-label="Overview">?</button>
+      ${g.items.map((it, k) => `<button class="chipbtn ${k === i ? 'on' : ''} ${p.seen.includes(k) ? 'seen' : ''}" data-act="lesson-go" data-i="${k}" lang="ja" aria-label="${esc(it.romaji)}">${esc(it.jp)}</button>`).join('')}
+    </div>
+    ${body}
+    ${i >= 0 ? `<div class="navrow">
+      <button class="btn" data-act="lesson-go" data-i="${i - 1}">← Previous</button>
+      ${i < g.items.length - 1
+        ? `<button class="btn primary" data-act="lesson-go" data-i="${i + 1}">Next →</button>`
+        : `<button class="btn primary" data-act="start-test">Ready</button>`}
+    </div>` : ''}
+    <div class="ready ${allSeen ? 'all' : ''}">
+      <p>${allSeen ? 'You\'ve reviewed every item in this group.' : `Reviewed ${p.seen.length} of ${g.items.length}. You can start the test any time.`}</p>
+      <button class="btn ${allSeen ? 'primary' : ''}" data-act="start-test">Ready, start the test</button>
+    </div>
+  </div>`;
+}
+
+function shuffle(a) {
+  a = a.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+function startTest(groupId, onlyIdx) {
+  const g = GROUPS.find(x => x.id === groupId);
+  const idx = onlyIdx && onlyIdx.length ? onlyIdx : g.items.map((_, k) => k);
+  go({ view: 'test', group: groupId, queue: shuffle(idx), size: idx.length, done: 0, firstTry: 0,
+       misses: {}, phase: 'ask', last: null, retry: !!(onlyIdx && onlyIdx.length) });
+}
+
+function renderTest() {
+  const g = GROUPS.find(x => x.id === state.group);
+  const item = g.items[state.queue[0]];
+  const pct = Math.round(state.done / state.size * 100);
+  app.innerHTML = `
+  ${topBar()}
+  <div style="--c:${g.color}">
+    <nav class="crumbs">
+      <button class="link" data-act="quit">← Quit test</button>
+      <span class="count">${esc(g.name)} · ${state.done}/${state.size} done</span>
+    </nav>
+    <div class="bar" aria-hidden="true"><span style="width:${pct}%"></span></div>
+    <div class="prompt">
+      <div class="jp" lang="ja">${esc(item.jp)}</div>
+      <div class="reading">${reading(item)}</div>
+    </div>
+    <p class="ask">What does this mean in English?</p>
+    <form class="answer-form" id="answerForm" autocomplete="off">
+      <input id="answer" type="text" placeholder="Type the meaning" aria-label="English meaning"
+        autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go">
+      <button class="btn primary" id="submitBtn" type="submit">Check</button>
+    </form>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+    <button class="link skip" id="dunno" type="button" data-act="dunno">I don't know this one</button>
+    <div class="review-panel" id="reviewPanel" hidden></div>
+  </div>`;
+  const input = document.getElementById('answer');
+  input.focus();
+  document.getElementById('answerForm').addEventListener('submit', e => {
+    e.preventDefault();
+    if (state.phase === 'ask') submitAnswer(input.value);
+    else nextQuestion();
+  });
+}
+
+function submitAnswer(value) {
+  const input = document.getElementById('answer');
+  if (!value.trim()) { shake(input); return; }
+  const g = GROUPS.find(x => x.id === state.group);
+  const k = state.queue[0];
+  const item = g.items[k];
+  const res = check(value, item);
+  const fb = document.getElementById('feedback');
+  input.readOnly = true;
+  document.getElementById('dunno').hidden = true;
+  document.getElementById('submitBtn').textContent = 'Next';
+  if (res.ok) {
+    state.phase = 'right';
+    input.classList.add('ok');
+    if (!state.misses[k]) state.firstTry++;
+    fb.innerHTML = `<p class="msg ok">Correct! ${esc(item.meaning)}${res.close ? `<small>Close enough. Watch the spelling: "${esc(res.match)}"</small>` : ''}</p>`;
+    advanceTimer = setTimeout(nextQuestion, res.close ? 1800 : 900);
+  } else {
+    markWrong(k, value);
+  }
+}
+
+function markWrong(k, value) {
+  const g = GROUPS.find(x => x.id === state.group);
+  const item = g.items[k];
+  const input = document.getElementById('answer');
+  const fb = document.getElementById('feedback');
+  state.phase = 'wrong';
+  state.misses[k] = (state.misses[k] || 0) + 1;
+  input.readOnly = true;
+  input.classList.add('no');
+  shake(input);
+  document.getElementById('dunno').hidden = true;
+  document.getElementById('submitBtn').textContent = 'Next';
+  fb.innerHTML = `
+    <p class="msg no">${value ? 'Not quite.' : 'No problem.'}<small>This one will come back later in the test.</small></p>
+    <button class="btn" type="button" data-act="show-review">Review this word</button>`;
+  document.getElementById('reviewPanel').innerHTML = itemCard(item, g);
+}
+
+function nextQuestion() {
+  clearTimeout(advanceTimer);
+  const k = state.queue.shift();
+  if (state.phase === 'right') {
+    state.done++;
+  } else {
+    // wrong: put it back a few spots later so it has to be answered correctly
+    const pos = Math.min(state.queue.length, 2 + Math.floor(Math.random() * 3));
+    state.queue.splice(pos, 0, k);
+  }
+  state.phase = 'ask';
+  if (!state.queue.length) return finishTest();
+  renderTest();
+}
+
+function finishTest() {
+  const g = GROUPS.find(x => x.id === state.group);
+  const score = Math.round(state.firstTry / state.size * 100);
+  const p = gp(g.id);
+  if (!state.retry) {
+    p.tests++;
+    p.best = p.best === null ? score : Math.max(p.best, score);
+    save();
+  }
+  go({ view: 'results', group: g.id, score, misses: state.misses, size: state.size, firstTry: state.firstTry, retry: state.retry, open: null });
+}
+
+function renderResults() {
+  const g = GROUPS.find(x => x.id === state.group);
+  const missed = Object.keys(state.misses).map(Number);
+  const nextG = GROUPS[GROUPS.indexOf(g) + 1];
+  const msg = state.score === 100 ? 'Perfect! Every item right on the first try.'
+    : state.score >= 80 ? 'Great work. Look over the ones you missed below.'
+    : 'Good practice. Review the missed items, then try again.';
+  app.innerHTML = `
+  ${topBar()}
+  <div style="--c:${g.color}">
+    <nav class="crumbs">
+      <button class="link" data-act="home">← All groups</button>
+      <span class="count">${esc(g.name)} · ${state.retry ? 'Missed-items retry' : 'Test results'}</span>
+    </nav>
+    <div class="score">
+      <div class="big">${state.score}%</div>
+      <p>${state.firstTry} of ${state.size} right on the first try. ${msg}</p>
+    </div>
+    ${missed.length ? `
+    <section class="missed">
+      <h2>Missed (tap to review)</h2>
+      <div class="missed-list">
+        ${missed.map(k => { const it = g.items[k]; return `
+          <button class="missed-row" data-act="toggle-missed" data-k="${k}" aria-expanded="${state.open === k}">
+            <span class="mini" lang="ja">${esc(it.jp)}</span>
+            <span><b>${esc(it.meaning)}</b><div class="m-ro">${it.kana ? esc(it.kana) + ' · ' : ''}${esc(it.romaji)}</div></span>
+            <span class="m-x">✕ ${state.misses[k]}</span>
+          </button>
+          ${state.open === k ? itemCard(it, g) : ''}`; }).join('')}
+      </div>
+    </section>` : ''}
+    <div class="actions">
+      ${missed.length ? `<button class="btn primary" data-act="retry-missed">Test only the missed ones</button>` : ''}
+      <button class="btn ${missed.length ? '' : 'primary'}" data-act="start-test">Take the full test again</button>
+      <button class="btn" data-act="open" data-id="${g.id}">Review the group</button>
+      ${nextG ? `<button class="btn" data-act="open" data-id="${nextG.id}">Next group: ${esc(nextG.name)} →</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function shake(el) {
+  el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+}
+
+/* ------------------------------------------------------------------
+   Events
+------------------------------------------------------------------- */
+let resetArmed = false;
+app.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const act = b.dataset.act;
+  if (act === 'home') go({ view: 'home' });
+  else if (act === 'open') go({ view: 'lesson', group: b.dataset.id, index: -1 });
+  else if (act === 'lesson-go') {
+    const g = GROUPS.find(x => x.id === state.group);
+    const i = Math.max(-1, Math.min(g.items.length - 1, Number(b.dataset.i)));
+    go({ view: 'lesson', group: state.group, index: i });
+  }
+  else if (act === 'start-test') startTest(state.group);
+  else if (act === 'retry-missed') startTest(state.group, Object.keys(state.misses).map(Number));
+  else if (act === 'quit') go({ view: 'lesson', group: state.group, index: -1 });
+  else if (act === 'dunno') { if (state.phase === 'ask') markWrong(state.queue[0], ''); }
+  else if (act === 'next') nextQuestion();
+  else if (act === 'show-review') {
+    const panel = document.getElementById('reviewPanel');
+    panel.hidden = !panel.hidden;
+    b.textContent = panel.hidden ? 'Review this word' : 'Hide review';
+    if (!panel.hidden) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  else if (act === 'toggle-missed') {
+    const k = Number(b.dataset.k);
+    state.open = state.open === k ? null : k;
+    renderResults();
+  }
+  else if (act === 'reset') {
+    if (!resetArmed) { resetArmed = true; b.textContent = 'Tap again to erase all progress'; return; }
+    progress = {}; save(); resetArmed = false; renderHome();
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.isComposing) return;
+  if (state.view === 'lesson') {
+    const g = GROUPS.find(x => x.id === state.group);
+    if (e.key === 'ArrowRight' && state.index < g.items.length - 1) go({ ...state, index: state.index + 1 });
+    if (e.key === 'ArrowLeft' && state.index > -1) go({ ...state, index: state.index - 1 });
+  }
+});
+
+render();
+</script>
+</body>
+</html>
