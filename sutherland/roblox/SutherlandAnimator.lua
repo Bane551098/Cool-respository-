@@ -1,47 +1,45 @@
 -- SutherlandAnimator (ModuleScript)
 --
--- Drives the Sutherland's imported animations and draws the slash harken
--- cables. Put this ModuleScript in ReplicatedStorage and call it from the
--- script that controls the mech:
+-- Plays the Sutherland model's animations (the 8 that ship with its rig)
+-- and draws the slash harken cables. Put this ModuleScript in
+-- ReplicatedStorage and call it from the script that controls the mech:
 --
 --   local SutherlandAnimator = require(ReplicatedStorage.SutherlandAnimator)
 --   local anim = SutherlandAnimator.new(workspace.Sutherland)
 --   anim:setMovement(speed, useLandspinners)  -- every frame / on input
---   anim:setAiming(true)
 --   anim:fire()
---   anim:harken("L")
+--   anim:harken()
+--   anim:tonfa("L")
+--   anim:scan()
 --
 -- Fill ANIMATION_IDS with the asset ids you get when you publish each
--- animation from the Animation Editor (see sutherland/README.md).
+-- Sutherland_<Name>.fbx from the Animation Editor (see sutherland/README.md).
 
 local RunService = game:GetService("RunService")
 
 local ANIMATION_IDS = {
 	Idle = "rbxassetid://0",
 	Walk = "rbxassetid://0",
-	Landspinner = "rbxassetid://0",
-	Aim = "rbxassetid://0",
-	Fire = "rbxassetid://0",
-	Harken_L = "rbxassetid://0",
-	Harken_R = "rbxassetid://0",
+	LandspinnerDash = "rbxassetid://0",
+	RifleFire = "rbxassetid://0",
+	SlashHarken = "rbxassetid://0",
+	TonfaStrikeL = "rbxassetid://0",
+	TonfaStrikeR = "rbxassetid://0",
+	FactsphereScan = "rbxassetid://0",
 }
 
-local WALK_SPEED_AT_1X = 8 -- studs/s the Walk cycle was authored for
-local SPIN_SPEED_AT_1X = 40 -- studs/s the Landspinner loop looks right at
+local MOVEMENT = { "Idle", "Walk", "LandspinnerDash" }
+local CHEST_BONE = "Chest"
+local HARKEN_BONES = { "Harken.L", "Harken.R" }
+
+local WALK_SPEED_AT_1X = 8 -- studs/s the Walk cycle looks right at
+local SPIN_SPEED_AT_1X = 40 -- studs/s the LandspinnerDash loop looks right at
 local MOVE_THRESHOLD = 0.5
+
+type Cable = { beam: Beam, mount: Attachment, offset: CFrame }
 
 local SutherlandAnimator = {}
 SutherlandAnimator.__index = SutherlandAnimator
-
-export type SutherlandAnimator = typeof(setmetatable({} :: {
-	model: Model,
-	animator: Animator,
-	tracks: { [string]: AnimationTrack },
-	cables: { [string]: { beam: Beam, mount: Attachment, bone: Bone, torso: Bone, offset: CFrame } },
-	aiming: boolean,
-	moveState: string,
-	connection: RBXScriptConnection?,
-}, SutherlandAnimator))
 
 local function findAnimator(model: Model): Animator
 	local animator = model:FindFirstChildWhichIsA("Animator", true)
@@ -67,15 +65,15 @@ local function findBone(model: Model, name: string): Bone?
 	return nil
 end
 
-function SutherlandAnimator.new(model: Model): SutherlandAnimator
+function SutherlandAnimator.new(model: Model)
 	local self = setmetatable({
 		model = model,
 		animator = findAnimator(model),
-		tracks = {},
-		cables = {},
-		aiming = false,
+		tracks = {} :: { [string]: AnimationTrack },
+		cables = {} :: { Cable },
+		chest = nil :: Bone?,
 		moveState = "",
-		connection = nil,
+		connection = nil :: RBXScriptConnection?,
 	}, SutherlandAnimator)
 
 	for name, id in ANIMATION_IDS do
@@ -83,13 +81,14 @@ function SutherlandAnimator.new(model: Model): SutherlandAnimator
 		animation.Name = name
 		animation.AnimationId = id
 		local track = self.animator:LoadAnimation(animation)
-		if name == "Idle" or name == "Walk" or name == "Landspinner" then
+		if table.find(MOVEMENT, name) then
 			track.Priority = Enum.AnimationPriority.Movement
 			track.Looped = true
-		elseif name == "Aim" then
-			track.Priority = Enum.AnimationPriority.Action
+		elseif name == "FactsphereScan" then
+			track.Priority = Enum.AnimationPriority.Idle
 		else
-			track.Priority = Enum.AnimationPriority.Action2
+			track.Priority = Enum.AnimationPriority.Action
+			track.Looped = false
 		end
 		self.tracks[name] = track
 	end
@@ -99,14 +98,14 @@ function SutherlandAnimator.new(model: Model): SutherlandAnimator
 	return self
 end
 
--- Movement layer: Idle / Walk / Landspinner, speed-matched.
-function SutherlandAnimator.setMovement(self: SutherlandAnimator, speed: number, useLandspinners: boolean)
+-- Movement layer: Idle / Walk / LandspinnerDash, speed-matched.
+function SutherlandAnimator:setMovement(speed: number, useLandspinners: boolean)
 	local state = "Idle"
 	if speed > MOVE_THRESHOLD then
-		state = if useLandspinners then "Landspinner" else "Walk"
+		state = if useLandspinners then "LandspinnerDash" else "Walk"
 	end
 	if state ~= self.moveState then
-		for _, name in { "Idle", "Walk", "Landspinner" } do
+		for _, name in MOVEMENT do
 			local track = self.tracks[name]
 			if name == state then
 				track:Play(0.3)
@@ -118,75 +117,57 @@ function SutherlandAnimator.setMovement(self: SutherlandAnimator, speed: number,
 	end
 	if state == "Walk" then
 		self.tracks.Walk:AdjustSpeed(speed / WALK_SPEED_AT_1X)
-	elseif state == "Landspinner" then
-		self.tracks.Landspinner:AdjustSpeed(math.clamp(speed / SPIN_SPEED_AT_1X, 0.5, 3))
+	elseif state == "LandspinnerDash" then
+		self.tracks.LandspinnerDash:AdjustSpeed(math.clamp(speed / SPIN_SPEED_AT_1X, 0.5, 3))
 	end
 end
 
--- Aim: raises the rifle and freezes on the last frame until released.
-function SutherlandAnimator.setAiming(self: SutherlandAnimator, aiming: boolean)
-	if aiming == self.aiming then
-		return
-	end
-	self.aiming = aiming
-	local track = self.tracks.Aim
-	if aiming then
-		track:Play(0.15)
-		task.delay(track.Length > 0 and track.Length * 0.95 or 0.6, function()
-			if self.aiming and track.IsPlaying then
-				track:AdjustSpeed(0) -- hold the aim pose
-			end
-		end)
-	else
-		track:AdjustSpeed(1)
-		track:Stop(0.25)
-	end
+function SutherlandAnimator:fire()
+	self.tracks.RifleFire:Play(0.1)
 end
 
--- Fire: one recoil cycle. Call repeatedly for bursts; aims first if needed.
-function SutherlandAnimator.fire(self: SutherlandAnimator)
-	if not self.aiming then
-		self:setAiming(true)
-	end
-	local track = self.tracks.Fire
-	track.Looped = false
-	track:Play(0.02)
+function SutherlandAnimator:tonfa(side: "L" | "R")
+	self.tracks["TonfaStrike" .. side]:Play(0.1)
 end
 
--- Slash harken: plays the launch animation; the cable follows the harken bone.
-function SutherlandAnimator.harken(self: SutherlandAnimator, side: "L" | "R")
-	local track = self.tracks["Harken_" .. side]
-	local cable = self.cables[side]
-	if cable then
+function SutherlandAnimator:scan()
+	self.tracks.FactsphereScan:Play(0.2)
+end
+
+-- Slash harkens: plays the launch animation; the cables follow the harken bones.
+function SutherlandAnimator:harken()
+	for _, cable in self.cables do
 		cable.beam.Enabled = true
 	end
+	local track = self.tracks.SlashHarken
 	track:Play(0.05)
 	track.Stopped:Once(function()
-		if cable then
+		for _, cable in self.cables do
 			cable.beam.Enabled = false
 		end
 	end)
 end
 
--- One Beam per harken, from a mount point that rides on the Torso bone to
--- the Harken bone (Bones are Attachments, so a Beam can end on one).
-function SutherlandAnimator._setupCables(self: SutherlandAnimator)
-	local torso = findBone(self.model, "Torso")
-	if not torso then
-		warn("SutherlandAnimator: no Torso bone found; harken cables disabled")
+-- One Beam per harken, from a mount point that rides on the Chest bone to
+-- the harken bone (Bones are Attachments, so a Beam can end on one).
+function SutherlandAnimator:_setupCables()
+	local chest = findBone(self.model, CHEST_BONE)
+	if not chest then
+		warn("SutherlandAnimator: no " .. CHEST_BONE .. " bone found; harken cables disabled")
 		return
 	end
-	for _, side in { "L", "R" } do
-		local bone = findBone(self.model, "Harken_" .. side)
+	self.chest = chest
+	for _, boneName in HARKEN_BONES do
+		local bone = findBone(self.model, boneName)
 		local holder = bone and bone:FindFirstAncestorWhichIsA("BasePart")
 		if bone and holder then
 			local mount = Instance.new("Attachment")
-			mount.Name = "HarkenMount_" .. side
+			mount.Name = boneName .. "_Mount"
 			mount.Parent = holder
 			mount.WorldCFrame = bone.TransformedWorldCFrame
 
 			local beam = Instance.new("Beam")
-			beam.Name = "HarkenCable_" .. side
+			beam.Name = boneName .. "_Cable"
 			beam.Attachment0 = mount
 			beam.Attachment1 = bone
 			beam.Width0 = 0.15
@@ -198,27 +179,25 @@ function SutherlandAnimator._setupCables(self: SutherlandAnimator)
 			beam.Enabled = false
 			beam.Parent = holder
 
-			self.cables[side] = {
+			table.insert(self.cables, {
 				beam = beam,
 				mount = mount,
-				bone = bone,
-				torso = torso,
-				offset = torso.TransformedWorldCFrame:ToObjectSpace(bone.TransformedWorldCFrame),
-			}
+				offset = chest.TransformedWorldCFrame:ToObjectSpace(bone.TransformedWorldCFrame),
+			})
 		end
 	end
 
-	-- Keep each cable's start point on the chest as the torso animates.
+	-- Keep each cable's start point on the chest as the body animates.
 	self.connection = RunService.Heartbeat:Connect(function()
 		for _, cable in self.cables do
 			if cable.beam.Enabled then
-				cable.mount.WorldCFrame = cable.torso.TransformedWorldCFrame * cable.offset
+				cable.mount.WorldCFrame = chest.TransformedWorldCFrame * cable.offset
 			end
 		end
 	end)
 end
 
-function SutherlandAnimator.destroy(self: SutherlandAnimator)
+function SutherlandAnimator:destroy()
 	if self.connection then
 		self.connection:Disconnect()
 	end

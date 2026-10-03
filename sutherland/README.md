@@ -91,11 +91,14 @@ It prints which object went to which bone. Output in `export/`:
    local SutherlandAnimator = require(game.ReplicatedStorage.SutherlandAnimator)
    local anim = SutherlandAnimator.new(workspace.Sutherland)
    anim:setMovement(speed, true)   -- true = landspinners, false = walking
-   anim:setAiming(true)
    anim:fire()
-   anim:harken("L")
+   anim:harken()
+   anim:tonfa("L")
+   anim:scan()
    ```
 
-The harken cable is a `Beam` from the chest mount to the `Harken_L/R`
-bone, so it stretches with the animation and hides when the harken is
-back.
+The module targets the model's own rig and its 8 animations (`Idle`,
+`Walk`, `LandspinnerDash`, `RifleFire`, `SlashHarken`, `TonfaStrikeL/R`,
+`FactsphereScan`, bones `Chest` and `Harken.L/R`). Each harken cable is a
+`Beam` from a chest mount to the harken bone, so it stretches with the
+animation and hides when the harkens are back.
